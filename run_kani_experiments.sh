@@ -2,7 +2,7 @@
 set -euo pipefail
 
 source "$HOME/.cargo/env"
-PROJ="/mnt/d/TRUSTINN/Smart-Contract-Analyzer-VeriRust"
+PROJ="$(cd "$(dirname "$0")" && pwd)"
 BENCH="$PROJ/benchmarks"
 OUT="$PROJ/results/anchor"
 
