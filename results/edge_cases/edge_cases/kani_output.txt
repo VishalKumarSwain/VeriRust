@@ -1,1 +1,0 @@
-./verify_rust.sh: line 291: kani: command not found

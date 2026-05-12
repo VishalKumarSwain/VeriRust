@@ -28,6 +28,10 @@ paper/*.synctex.gz
 # Database
 *.db
 
+# Excluded from repo
+results/
+paper/
+
 # Test artifacts
 simple_contract_test
 test_output.txt
