@@ -4,3 +4,4 @@ pub mod vault_overflow;
 pub mod staking_safe;
 pub mod staking_missing_auth;
 pub mod token_mint_bug;
+pub mod real_marinade_stake;
