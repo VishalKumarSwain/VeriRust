@@ -1,0 +1,30 @@
+═══════════════════════════════════════════════════════════════
+VERIFICATION SUMMARY: edge_cases
+═══════════════════════════════════════════════════════════════
+Original File: /home/nihal/Downloads/Smart-Contract-Analyzer-VeriRust/edge_cases.rs
+Status: FAILED 
+Exit Code: 127
+Verification Date: Wed May  6 02:19:38 PM IST 2026
+
+Assert Statements Injected:
+  ✓ REACHABLE_TRUE:  23 (50%)
+  ✓ REACHABLE_FALSE: 23 (50%)
+  ✓ Total Asserts:   46
+
+Reachability Coverage:
+  Coverage Basis:    ESTIMATED (Kani did not produce reachability results)
+  ✓ TRUE paths:      23 / 23
+  ✓ FALSE paths:     0 / 23
+  ✓ Total Reachable: 23 / 46
+  → Condition Coverage: 50%
+
+Execution Time: .008758473 seconds
+
+Generated Files:
+  • edge_cases_original.txt - Original source (backup)
+  • edge_cases_mod.txt - Modified with assert statements
+  • injection.log - Harness generation log
+  • kani_output.txt - Full Kani verification output
+  • coverage_report/index.html - LLVM branch coverage report
+  • coverage_report/LLVM_COVERAGE_SUMMARY.txt - Coverage metadata
+  • SUMMARY.txt - This summary

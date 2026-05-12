@@ -1,0 +1,30 @@
+═══════════════════════════════════════════════════════════════
+VERIFICATION SUMMARY: complex_contract
+═══════════════════════════════════════════════════════════════
+Original File: /home/nihal/Downloads/Smart-Contract-Analyzer-VeriRust/complex_contract.rs
+Status: FAILED 
+Exit Code: 127
+Verification Date: Wed May  6 02:16:23 PM IST 2026
+
+Assert Statements Injected:
+  ✓ REACHABLE_TRUE:  9 (50%)
+  ✓ REACHABLE_FALSE: 9 (50%)
+  ✓ Total Asserts:   18
+
+Reachability Coverage:
+  Coverage Basis:    ESTIMATED (Kani did not produce reachability results)
+  ✓ TRUE paths:      9 / 9
+  ✓ FALSE paths:     0 / 9
+  ✓ Total Reachable: 9 / 18
+  → Condition Coverage: 50%
+
+Execution Time: .002562857 seconds
+
+Generated Files:
+  • complex_contract_original.txt - Original source (backup)
+  • complex_contract_mod.txt - Modified with assert statements
+  • injection.log - Harness generation log
+  • kani_output.txt - Full Kani verification output
+  • coverage_report/index.html - LLVM branch coverage report
+  • coverage_report/LLVM_COVERAGE_SUMMARY.txt - Coverage metadata
+  • SUMMARY.txt - This summary

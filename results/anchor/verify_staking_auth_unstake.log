@@ -1,0 +1,16 @@
+Kani Rust Verifier 0.67.0 (cargo plugin)
+   Compiling verirust-benchmarks v0.1.0 (/mnt/d/TRUSTINN/Smart-Contract-Analyzer-VeriRust/benchmarks)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.33s
+Checking harness staking_missing_auth::verirust_harnesses::verify_staking_auth_unstake...
+
+VERIFICATION RESULT:
+ ** 1 of 47 failed
+Failed Checks: "AUTH_VIOLATION: non-owner successfully unstaked funds"
+ File: "src/staking_missing_auth.rs", line 109, in staking_missing_auth::verirust_harnesses::verify_staking_auth_unstake
+
+VERIFICATION:- FAILED
+Verification Time: 0.077751726s
+
+Manual Harness Summary:
+Verification failed for - staking_missing_auth::verirust_harnesses::verify_staking_auth_unstake
+Complete - 0 successfully verified harnesses, 1 failures, 1 total.

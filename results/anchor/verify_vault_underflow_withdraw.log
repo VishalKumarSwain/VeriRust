@@ -1,0 +1,15 @@
+Kani Rust Verifier 0.67.0 (cargo plugin)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.06s
+Checking harness vault_underflow::verirust_harnesses::verify_vault_underflow_withdraw...
+
+VERIFICATION RESULT:
+ ** 1 of 32 failed
+Failed Checks: attempt to subtract with overflow
+ File: "src/vault_underflow.rs", line 29, in vault_underflow::withdraw
+
+VERIFICATION:- FAILED
+Verification Time: 0.04740302s
+
+Manual Harness Summary:
+Verification failed for - vault_underflow::verirust_harnesses::verify_vault_underflow_withdraw
+Complete - 0 successfully verified harnesses, 1 failures, 1 total.

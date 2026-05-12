@@ -1,0 +1,12 @@
+harness,expected,result,time_s,counterexample
+"verify_vault_safe_deposit","PASS","PASS","0.54",""
+"verify_vault_safe_withdraw","PASS","PASS","0.49",""
+"verify_vault_safe_auth","PASS","PASS","0.50",""
+"verify_vault_underflow_withdraw","FAIL","FAIL","0.49","integer underflow"
+"verify_vault_overflow_deposit","FAIL","FAIL","0.73","integer overflow"
+"verify_staking_safe_stake","PASS","PASS","0.81",""
+"verify_staking_safe_unstake","PASS","PASS","0.77",""
+"verify_staking_safe_auth","PASS","PASS","0.79",""
+"verify_staking_auth_unstake","FAIL","FAIL","0.80","AUTH_VIOLATION"
+"verify_token_mint","PASS","PASS","0.80",""
+"verify_token_burn_supply","FAIL","FAIL","0.78","SUPPLY_INVARIANT"

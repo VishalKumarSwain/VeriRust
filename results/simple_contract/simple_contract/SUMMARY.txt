@@ -1,0 +1,30 @@
+═══════════════════════════════════════════════════════════════
+VERIFICATION SUMMARY: simple_contract
+═══════════════════════════════════════════════════════════════
+Original File: /mnt/d/TRUSTINN/Smart-Contract-Analyzer-VeriRust/simple_contract.rs
+Status: PASSED 
+Exit Code: 0
+Verification Date: Sat May  9 10:15:55 IST 2026
+
+Assert Statements Injected:
+  ✓ REACHABLE_TRUE:  1 (50%)
+  ✓ REACHABLE_FALSE: 1 (50%)
+  ✓ Total Asserts:   2
+
+Reachability Coverage:
+  Coverage Basis:    KANI
+  ✓ TRUE paths:      0 / 1
+  ✓ FALSE paths:     0 / 1
+  ✓ Total Reachable: 0 / 2
+  → Condition Coverage: 0%
+
+Execution Time: .551004231 seconds
+
+Generated Files:
+  • simple_contract_original.txt - Original source (backup)
+  • simple_contract_mod.txt - Modified with assert statements
+  • injection.log - Harness generation log
+  • kani_output.txt - Full Kani verification output
+  • coverage_report/index.html - LLVM branch coverage report
+  • coverage_report/LLVM_COVERAGE_SUMMARY.txt - Coverage metadata
+  • SUMMARY.txt - This summary

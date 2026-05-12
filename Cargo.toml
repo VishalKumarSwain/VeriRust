@@ -1,0 +1,6 @@
+[package]
+name = "Smart-Contract-Analyzer-VeriRust"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
