@@ -59,19 +59,27 @@ echo ""
 echo -e "${CYAN}━━━ Phase 2: Kani Symbolic Verification ━━━${NC}"
 echo ""
 
-# Collect all harness names via cargo kani --list
+# Collect all harness names via cargo kani list
 cd "$BENCHMARKS_DIR"
 source "$HOME/.cargo/env"
 
 echo "  Discovering harnesses ..."
-# cargo kani --list returns lines like: "  [harness] module::verify_xxx"
-HARNESS_LIST=$($CARGO kani --list 2>/dev/null | grep -oP '(?<=\[Proof\] )\S+' || true)
+# cargo kani list prints a table with fully-qualified harness names.
+HARNESS_LIST=$($CARGO kani list 2>/dev/null | awk -F'|' '
+    /verirust_benchmarks/ {
+        gsub(/^[ \t]+|[ \t]+$/, "", $4);
+        if ($4 != "") print $4;
+    }
+' || true)
 
 if [[ -z "$HARNESS_LIST" ]]; then
-    # Fallback: grep harness names from source
-    HARNESS_LIST=$(grep -rh '#\[kani::proof\]' src/ -A1 | grep 'fn verify_' | \
-                   grep -oP '(?<=fn )\w+' | \
-                   awk '{print $1}')
+    # Fallback: grep harness names from source and qualify them by module.
+    HARNESS_LIST=$(grep -Rhl '#\[kani::proof\]' src/*.rs | while read -r rs; do
+        module=$(basename "$rs" .rs)
+        grep '#\[kani::proof\]' "$rs" -A1 | grep 'fn verify_' | \
+            grep -oP '(?<=fn )\w+' | \
+            awk -v module="$module" '{print module "::verirust_harnesses::" $1}'
+    done)
 fi
 
 echo "  Found harnesses:"
@@ -97,6 +105,9 @@ EXPECTED["verify_staking_safe_auth"]="PASS"
 EXPECTED["verify_staking_auth_unstake"]="FAIL"
 EXPECTED["verify_token_mint"]="PASS"
 EXPECTED["verify_token_burn_supply"]="FAIL"
+EXPECTED["verify_real_stake"]="PASS"
+EXPECTED["verify_real_order_unstake_auth"]="FAIL"
+EXPECTED["verify_real_claim"]="PASS"
 
 TOTAL=0
 CORRECT=0
@@ -135,9 +146,9 @@ for harness in $HARNESS_LIST; do
         RESULT["$short_name"]="FAIL"
         FAIL_COUNT=$((FAIL_COUNT + 1))
         # Extract counterexample type
-        cex=$(grep -oP '(arithmetic overflow|underflow|assertion failed|assertion `left == right` failed.*\n?.*)' \
+        cex=$(grep -oP '(AUTH_VIOLATION[^"]*|SUPPLY_INVARIANT[^"]*|attempt to add[^"]*|attempt to subtract[^"]*|arithmetic overflow|integer underflow|integer overflow|underflow|assertion failed|assertion `left == right` failed.*\n?.*)' \
               "$kani_log" 2>/dev/null | head -1 | tr -d '\n' || echo "see log")
-        COUNTEREX["$short_name"]="${cex:0:60}"
+        COUNTEREX["$short_name"]="$cex"
         echo -e "${RED}FAIL${NC} (${elapsed_s}s) — $cex"
     elif [[ $kani_exit -eq 124 ]]; then
         RESULT["$short_name"]="TIMEOUT"
@@ -184,6 +195,9 @@ ordered_harnesses=(
     "verify_staking_auth_unstake"
     "verify_token_mint"
     "verify_token_burn_supply"
+    "verify_real_stake"
+    "verify_real_order_unstake_auth"
+    "verify_real_claim"
 )
 
 for h in "${ordered_harnesses[@]}"; do

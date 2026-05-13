@@ -19,7 +19,7 @@ Usage:
 
 import sys
 import os
-from typing import List, Dict, Set
+from typing import List, Dict, Set, Optional
 
 from anchor_parser import parse_file, AnchorProgram, Struct, Instruction, Constraint
 from property_injector import classify_instruction, KNOWN_VULN_CLASSES
@@ -56,9 +56,59 @@ def _call_args(params) -> str:
     return (", " + args) if args else ""
 
 
+def _first_amount_param(instruction: Instruction) -> Optional[str]:
+    for p in instruction.params:
+        if p.type_ == "u64" and p.name in ("amount", "lamports"):
+            return p.name
+    for p in instruction.params:
+        if p.type_ == "u64":
+            return p.name
+    return None
+
+
+def _looks_like_value_field(field_name: str) -> bool:
+    return any(word in field_name for word in (
+        "amount", "balance", "cooling", "lamports", "liquidity",
+        "stake", "staked", "supply", "total",
+    ))
+
+
+def _numeric_preconditions_for_param(
+    program: AnchorProgram,
+    ctx_type: str,
+    param_name: str,
+    *,
+    lower_bound: bool,
+    upper_bound: bool,
+) -> List[str]:
+    ctx_struct = program.get_struct(ctx_type)
+    if ctx_struct is None:
+        return []
+
+    assumptions: List[str] = []
+    if upper_bound:
+        assumptions.append(f"kani::assume({param_name} <= u64::MAX / 2);")
+
+    for ctx_field in ctx_struct.fields:
+        embedded = program.get_struct(ctx_field.type_)
+        if embedded is None:
+            continue
+        for field in embedded.fields:
+            if field.type_ != "u64" or not _looks_like_value_field(field.name):
+                continue
+            path = f"ctx.{ctx_field.name}.{field.name}"
+            if lower_bound:
+                assumptions.append(f"kani::assume({path} >= {param_name});")
+            if upper_bound:
+                assumptions.append(f"kani::assume({path} <= u64::MAX / 2);")
+
+    return list(dict.fromkeys(assumptions))
+
+
 def safety_harness(
     instruction: Instruction,
     constraints: List[Constraint],
+    program: AnchorProgram,
     suffix: str = ""
 ) -> str:
     """
@@ -73,6 +123,16 @@ def safety_harness(
         elif c.kind == "has_one":
             assumes.append(f"kani::assume(ctx.{c.ctx_field} == ctx.{c.account_field});")
 
+    amount_param = _first_amount_param(instruction)
+    if amount_param and "checked_add" in instruction.body:
+        assumes.extend(_numeric_preconditions_for_param(
+            program,
+            instruction.ctx_type,
+            amount_param,
+            lower_bound=False,
+            upper_bound=True,
+        ))
+
     assume_block = ("\n" + "\n".join(f"        {a}" for a in assumes)) if assumes else ""
     param_decl_block = ("\n" + _param_decls(instruction.params)) if instruction.params else ""
     call_args = _call_args(instruction.params)
@@ -80,8 +140,8 @@ def safety_harness(
     return f"""\
     // Safety harness: {instruction.name} — detect arithmetic panics
     #[kani::proof]
-    fn {fn_name}() {{{param_decl_block}{assume_block}
-        let mut ctx: {instruction.ctx_type} = kani::any();
+    fn {fn_name}() {{
+        let mut ctx: {instruction.ctx_type} = kani::any();{param_decl_block}{assume_block}
         let _ = {instruction.name}(&mut ctx{call_args});
         // Kani checks: no arithmetic panic, no assertion failure
     }}"""
@@ -90,6 +150,7 @@ def safety_harness(
 def auth_harness(
     instruction: Instruction,
     has_one_constraint: Constraint,
+    program: AnchorProgram,
     suffix: str = "_auth"
 ) -> str:
     """
@@ -100,15 +161,16 @@ def auth_harness(
     call_args = _call_args(instruction.params)
     param_decl_block = ("\n" + _param_decls(instruction.params)) if instruction.params else ""
     extra_assumes = []
-    # If the contract also has sufficient-balance style checks we need to
-    # assume enough state so only the auth check triggers.
-    # We do a generic "enough" assume based on amount param if present.
-    for p in instruction.params:
-        if p.name == "amount":
-            # find the staked/balance field in the embedded account struct
-            extra_assumes.append(
-                f"// Ensure non-auth check is the binding one"
-            )
+    # Keep non-auth checks from masking an authorization violation.
+    amount_param = _first_amount_param(instruction)
+    if amount_param:
+        extra_assumes.extend(_numeric_preconditions_for_param(
+            program,
+            instruction.ctx_type,
+            amount_param,
+            lower_bound=True,
+            upper_bound=True,
+        ))
     extra_block = ("\n" + "\n".join(f"        {a}" for a in extra_assumes)) if extra_assumes else ""
 
     return f"""\
@@ -134,28 +196,37 @@ def supply_invariant_harness(
     suffix: str = "_supply"
 ) -> str:
     """
-    Assert that total_supply decreases by exactly 'amount' on success.
+    Assert that supply fields move in the direction implied by the instruction name.
     """
     fn_name = f"verify_{instruction.name}{suffix}"
     acc = supply_constraint.ctx_field
     sf = supply_constraint.account_field
     call_args = _call_args(instruction.params)
     param_decl_block = ("\n" + _param_decls(instruction.params)) if instruction.params else ""
+    lowers_supply = instruction.name.startswith(("burn", "withdraw", "unstake", "order_unstake"))
+    op = "-" if lowers_supply else "+"
+    direction = "decrease" if lowers_supply else "increase"
+    if lowers_supply:
+        precondition = f"        kani::assume({amount_param_name} <= ctx.{acc}.{sf});"
+    else:
+        precondition = (
+            f"        kani::assume(ctx.{acc}.{sf} <= u64::MAX / 2);\n"
+            f"        kani::assume({amount_param_name} <= u64::MAX / 2);"
+        )
 
     return f"""\
-    // Supply invariant harness: {instruction.name} — {acc}.{sf} must decrease by {amount_param_name}
+    // Supply invariant harness: {instruction.name} — {acc}.{sf} must {direction} by {amount_param_name}
     #[kani::proof]
     fn {fn_name}() {{{param_decl_block}
         let mut ctx: {instruction.ctx_type} = kani::any();
         kani::assume(ctx.is_signer);
-        // Valid pre-state: amount cannot exceed the supply field
-        kani::assume({amount_param_name} <= ctx.{acc}.{sf});
+{precondition}
         let pre_{sf} = ctx.{acc}.{sf};
         let result = {instruction.name}(&mut ctx{call_args});
         if result.is_ok() {{
             assert!(
-                ctx.{acc}.{sf} == pre_{sf} - {amount_param_name},
-                "SUPPLY_INVARIANT: {sf} not reduced after successful {instruction.name}"
+                ctx.{acc}.{sf} == pre_{sf} {op} {amount_param_name},
+                "SUPPLY_INVARIANT: {sf} not correctly updated after successful {instruction.name}"
             );
         }}
     }}"""
@@ -197,24 +268,24 @@ def synthesize(program: AnchorProgram) -> str:
         vuln_classes = classify_instruction(instruction)
 
         # (a) Safety harness — always generated
-        lines.append(safety_harness(instruction, constraints))
+        lines.append(safety_harness(instruction, constraints, program))
         lines.append("")
 
         # (b) Auth harness — when there is a has_one constraint
         has_one_constraints = [c for c in constraints if c.kind == "has_one"]
         if has_one_constraints:
             # Use first has_one constraint for the auth harness
-            lines.append(auth_harness(instruction, has_one_constraints[0]))
+            lines.append(auth_harness(instruction, has_one_constraints[0], program))
             lines.append("")
 
         # (c) Supply invariant harness — when there is a supply_invariant constraint
         supply_constraints = [c for c in constraints if c.kind == "supply_invariant"]
-        amount_params = [p for p in instruction.params if p.name == "amount"]
+        amount_params = [p for p in instruction.params if p.name in ("amount", "lamports")]
         if supply_constraints and amount_params:
             lines.append(supply_invariant_harness(
                 instruction,
                 supply_constraints[0],
-                amount_param_name="amount"
+                amount_param_name=amount_params[0].name
             ))
             lines.append("")
 

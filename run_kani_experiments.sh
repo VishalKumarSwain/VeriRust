@@ -20,6 +20,9 @@ HARNESSES=(
   "staking_missing_auth::verirust_harnesses::verify_staking_auth_unstake"
   "token_mint_bug::verirust_harnesses::verify_token_mint"
   "token_mint_bug::verirust_harnesses::verify_token_burn_supply"
+  "real_marinade_stake::verirust_harnesses::verify_real_stake"
+  "real_marinade_stake::verirust_harnesses::verify_real_order_unstake_auth"
+  "real_marinade_stake::verirust_harnesses::verify_real_claim"
 )
 
 echo "harness,expected,result,time_s,counterexample" > "$OUT/results.csv"
@@ -36,6 +39,9 @@ EXPECTED["verify_staking_safe_auth"]="PASS"
 EXPECTED["verify_staking_auth_unstake"]="FAIL"
 EXPECTED["verify_token_mint"]="PASS"
 EXPECTED["verify_token_burn_supply"]="FAIL"
+EXPECTED["verify_real_stake"]="PASS"
+EXPECTED["verify_real_order_unstake_auth"]="FAIL"
+EXPECTED["verify_real_claim"]="PASS"
 
 cd "$BENCH"
 

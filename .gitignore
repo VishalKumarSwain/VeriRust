@@ -36,3 +36,4 @@ paper/
 simple_contract_test
 test_output.txt
 tarpaulin-report.html
+tests/real_world_vas/target/
